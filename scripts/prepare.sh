@@ -29,12 +29,12 @@ cd "$SOURCE_DIR"
 
 # ---------------------------------------------------------------- feeds
 # feeds.conf 优先于 feeds.conf.default；每次重新生成，保证可重复。
-log "写入 feeds.conf（官方源 + kenzok8/small-package + gdy666/lucky）"
+log "写入 feeds.conf（官方源 + build.config 中定义的自定义源）"
 cp feeds.conf.default feeds.conf
-cat >> feeds.conf <<'EOF'
-src-git smallpackage https://github.com/kenzok8/small-package.git^main
-src-git lucky https://github.com/gdy666/luci-app-lucky.git^main
-EOF
+while IFS='|' read -r alias url; do
+    [[ -n "$alias" && -n "$url" ]] || continue
+    printf 'src-git %s %s\n' "$alias" "$url" >> feeds.conf
+done < <(read_custom_feeds)
 
 log "更新 feeds"
 ./scripts/feeds update -a
@@ -103,6 +103,21 @@ log "从 gdy666/luci-app-lucky 安装 lucky 核心包与界面包"
 # watchcat / luci-app-watchcat / luci-i18n-watchcat-zh-cn 均来自官方 feed
 # （packages feed 提供 watchcat 核心；luci feed 提供界面+zh_Hans 语言包），
 # 上面 `feeds install -a -p <官方feed>` 已全量安装，无需额外处理。
+
+# 运行时自定义插件（CUSTOM_PLUGINS，空格分隔）：在所有 feed 里去安装这些包，
+# feeds install 会自动递归装上其依赖；找不到的包给出告警而不中断（defconfig
+# 会自然忽略未安装的包，避免用户填错一个名字导致整个固件编译失败）。
+if [[ -n "${CUSTOM_PLUGINS:-}" ]]; then
+    log "安装运行时自定义插件：${CUSTOM_PLUGINS}"
+    while IFS= read -r pkg; do
+        [[ -n "$pkg" ]] || continue
+        if ./scripts/feeds install "$pkg" >/dev/null 2>&1; then
+            ok "自定义插件已安装：$pkg"
+        else
+            warn "自定义插件未找到（将不会打进固件）：$pkg"
+        fi
+    done < <(read_custom_plugins)
+fi
 
 # ---------------------------------------------------------------- 补丁
 shopt -s nullglob

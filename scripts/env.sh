@@ -1,20 +1,17 @@
 #!/usr/bin/env bash
 # 公共环境变量与辅助函数。所有脚本通过 source 引入本文件。
+# 所有可变配置集中在仓库根目录的 build.config（P3TERX 风格的单文件配置）。
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BUILD_CONF="${REPO_ROOT}/build.config"
 
-SOURCE_REPO="${SOURCE_REPO:-https://github.com/shiyu1314/openwrt-source.git}"
-SOURCE_TAG="${SOURCE_TAG:-v25.12.6}"
+[[ -f "$BUILD_CONF" ]] || { printf '[FAIL] 找不到配置文件：%s\n' "$BUILD_CONF" >&2; exit 1; }
+# shellcheck disable=SC1090
+source "$BUILD_CONF"
+
+# 运行期路径 / 目标目录约定（非用户配置，一般无需改动）
 SOURCE_DIR="${SOURCE_DIR:-${REPO_ROOT}/source}"
-
-LAN_IP="${LAN_IP:-192.168.6.1}"
-AUTHOR="${AUTHOR:-WorkBuddy}"
-JOBS="${JOBS:-$( (nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4) )}"
-
-DEVICE_CONF="${REPO_ROOT}/devices.conf"
-PLUGIN_CONF="${REPO_ROOT}/plugins.conf"
-COMMON_CONF="${REPO_ROOT}/config/common.config"
 PATCH_DIR="${REPO_ROOT}/patches"
 FIRMWARE_DIR="${REPO_ROOT}/firmware"
 TARGET_DIR="bin/targets/mediatek/filogic"
@@ -30,18 +27,49 @@ ok()   { printf '%b[ OK ]%b %s\n' "$C_GREEN" "$C_RESET" "$*"; }
 warn() { printf '%b[WARN]%b %s\n' "$C_YELLOW" "$C_RESET" "$*" >&2; }
 die()  { printf '%b[FAIL]%b %s\n' "$C_RED" "$C_RESET" "$*" >&2; exit 1; }
 
-# 输出格式：key|Kconfig 符号|说明|闪存
+# ---------------------------------------------------------------- 配置读取
+# 机型：原样输出 build.config 中 DEVICES 数组元素（key|符号|说明|闪存）
 read_devices() {
-    grep -vE '^[[:space:]]*(#|$)' "$DEVICE_CONF"
+    printf '%s\n' "${DEVICES[@]}"
 }
 
-# 输出格式：包名
+# 自定义插件：CUSTOM_PLUGINS 环境变量（空格分隔），规范化为一行一个包名。
+# 兼容三种写法：luci-app-xxx / CONFIG_PACKAGE_luci-app-xxx=y / CONFIG_PACKAGE_luci-app-xxx
+normalize_plugin() {
+    local p="$1"
+    p="${p#CONFIG_PACKAGE_}"
+    p="${p%=y}"
+    printf '%s' "$p"
+}
+
+read_custom_plugins() {
+    [[ -n "${CUSTOM_PLUGINS:-}" ]] || return 0
+    local p
+    for p in $CUSTOM_PLUGINS; do
+        p="$(normalize_plugin "$p")"
+        [[ -n "$p" ]] && printf '%s\n' "$p"
+    done
+}
+
+# 必装插件 = build.config 固定清单 + 运行期自定义插件
 read_plugins() {
-    grep -vE '^[[:space:]]*(#|$)' "$PLUGIN_CONF" | tr -d '\r'
+    printf '%s\n' "${PLUGINS[@]}"
+    read_custom_plugins
 }
 
+# 自定义 feed 源：输出 feed别名|URL
+read_custom_feeds() {
+    printf '%s\n' "${CUSTOM_FEEDS[@]}"
+}
+
+# 公共编译配置（CONFIG_* 行）
+common_config() {
+    printf '%s\n' "$COMMON_CONFIG"
+}
+
+# ---------------------------------------------------------------- 机型辅助
 device_symbol() {
-    local key="$1" line
+    local key="$1" k sym desc flash
     while IFS='|' read -r k sym desc flash; do
         [[ "$k" == "$key" ]] && { printf '%s' "$sym"; return 0; }
     done < <(read_devices)
@@ -49,7 +77,7 @@ device_symbol() {
 }
 
 device_desc() {
-    local key="$1" line
+    local key="$1" k sym desc flash
     while IFS='|' read -r k sym desc flash; do
         [[ "$k" == "$key" ]] && { printf '%s' "$desc"; return 0; }
     done < <(read_devices)
@@ -57,7 +85,7 @@ device_desc() {
 }
 
 device_exists() {
-    local key="$1"
+    local key="$1" k sym desc flash
     while IFS='|' read -r k sym desc flash; do
         [[ "$k" == "$key" ]] && return 0
     done < <(read_devices)

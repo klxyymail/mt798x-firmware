@@ -8,8 +8,8 @@ usage() {
 用法: $0 [选项] [机型...]
 
 选项:
-  -d, --device NAME    指定机型（可重复）；可选值见 devices.conf
-  -a, --all            编译 devices.conf 中全部 4 个机型（默认）
+  -d, --device NAME    指定机型（可重复）；可选值见 build.config 的 DEVICES
+  -a, --all            编译 build.config 中全部机型（默认）
       --jobs N         并行编译线程数（默认 ${JOBS}）
       --ip ADDR        LAN 口默认地址（默认 ${LAN_IP}）
       --tag TAG        源码 tag（默认 ${SOURCE_TAG}）
@@ -81,7 +81,8 @@ log "生成 .config"
         sym="$(device_symbol "$dev")" || die "未找到 $dev 的 Kconfig 符号"
         printf '%s=y\n' "$sym"
     done
-    cat "$COMMON_CONF"
+    # 公共编译配置来自 build.config 的 COMMON_CONFIG（单一配置文件）
+    common_config
     # 检测到 ccache 则启用编译缓存（CI 与各人本地均可受益）
     if command -v ccache >/dev/null 2>&1; then
         echo 'CONFIG_CCACHE=y'
@@ -107,7 +108,8 @@ fi
 
 # 诊断：必选 luci 插件若在 defconfig 后丢失，打印其 Kconfig 依赖状态便于定位
 for sym in luci-app-store luci-app-diskman luci-app-oaf luci-theme-argon \
-           luci-app-lucky luci-app-wrtbwmon luci-app-watchcat lucky watchcat; do
+           luci-app-lucky luci-app-wrtbwmon luci-app-watchcat lucky watchcat \
+           $(read_custom_plugins); do
     if ! grep -qxF "CONFIG_PACKAGE_${sym}=y" .config; then
         warn "诊断：${sym} 未进入 .config，相关行如下："
         grep -iE "${sym}|luci-lua-runtime|mount-utils" .config | sed 's/^/    /' || true
@@ -170,6 +172,7 @@ done
     echo "lan_ip=$LAN_IP"
     echo "author=$AUTHOR"
     echo "plugins=$(read_plugins | tr '\n' ' ')"
+    echo "custom_plugins=$(read_custom_plugins | tr '\n' ' ')"
 } > "$FIRMWARE_DIR/BUILD_INFO.txt"
 
 log "编译后校验固件与插件清单"

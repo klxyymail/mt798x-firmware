@@ -34,23 +34,44 @@ on:
         required: false
         default: true
         type: boolean
+      custom_plugins:
+        description: '自定义插件名称，空格分隔（留空则不添加）。例：luci-app-zerotier luci-app-socat'
+        required: false
+        default: ''
+        type: string
   repository_dispatch:
     types: [build]
 
 permissions:
   contents: write
 
-env:
-  SOURCE_TAG: v25.12.6
-
 jobs:
   setup:
-    name: 计算构建参数
+    name: 读取配置并计算构建参数
     runs-on: ubuntu-24.04
     outputs:
       devices: ${{ steps.select.outputs.devices }}
       tag: ${{ steps.tag.outputs.tag }}
+      source_tag: ${{ steps.config.outputs.source_tag }}
     steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      # 唯一配置源：机型与源码版本都从 build.config 读取，不在 workflow 里重复维护。
+      - name: 读取 build.config
+        id: config
+        run: |
+          source ./build.config
+          echo "source_tag=$SOURCE_TAG" >> "$GITHUB_OUTPUT"
+          devs=""
+          for d in "${DEVICES[@]}"; do
+            key="${d%%|*}"
+            [ -n "$devs" ] && devs="$devs,"
+            devs="$devs\"$key\""
+          done
+          echo "all_devices=[$devs]" >> "$GITHUB_OUTPUT"
+          echo "源码版本=$SOURCE_TAG，机型=[$devs]"
+
       - name: 计算发布标签
         id: tag
         run: echo "tag=$(TZ=Asia/Shanghai date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
@@ -60,8 +81,8 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           DEVICE: ${{ inputs.device }}
+          ALL: ${{ steps.config.outputs.all_devices }}
         run: |
-          ALL='["cmcc_rax3000m-256m-nand","cmcc_rax3000m-emmc","cmcc_rax3000m-nand","cmcc_xr30-emmc"]'
           case "$DEVICE" in
             cmcc_rax3000m-256m-nand|cmcc_rax3000m-emcc|cmcc_rax3000m-nand|cmcc_xr30-emmc)
               if [ "$EVENT" = "workflow_dispatch" ]; then
@@ -107,6 +128,7 @@ jobs:
         env:
           LAN_IP: ${{ inputs.ip || '192.168.6.1' }}
           AUTHOR: ${{ inputs.author || 'WorkBuddy' }}
+          CUSTOM_PLUGINS: ${{ inputs.custom_plugins || '' }}
         run: ./scripts/prepare.sh
 
       - name: 恢复工具链与下载包缓存
@@ -116,9 +138,9 @@ jobs:
             source/staging_dir
             source/dl
             source/.ccache
-          key: ${{ runner.os }}-mt798x-staging-${{ env.SOURCE_TAG }}-${{ hashFiles('config/common.config', 'plugins.conf', 'devices.conf') }}
+          key: ${{ runner.os }}-mt798x-staging-${{ needs.setup.outputs.source_tag }}-${{ hashFiles('build.config') }}
           restore-keys: |
-            ${{ runner.os }}-mt798x-staging-${{ env.SOURCE_TAG }}-
+            ${{ runner.os }}-mt798x-staging-${{ needs.setup.outputs.source_tag }}-
             ${{ runner.os }}-mt798x-staging-
 
       - name: 配置 ccache
@@ -128,6 +150,8 @@ jobs:
           ccache -z
 
       - name: 编译固件
+        env:
+          CUSTOM_PLUGINS: ${{ inputs.custom_plugins || '' }}
         run: |
           ./scripts/build.sh --skip-prepare \
             --device "${{ matrix.device }}" \
@@ -161,6 +185,7 @@ jobs:
         env:
           LAN_IP: ${{ inputs.ip || '192.168.6.1' }}
           AUTHOR: ${{ inputs.author || 'WorkBuddy' }}
+          CUSTOM_PLUGINS: ${{ inputs.custom_plugins || '' }}
         run: |
           mkdir -p release
           find artifacts -type f \( -name '*.bin' -o -name '*.manifest' \) -exec cp -f {} release/ \;
@@ -175,6 +200,7 @@ jobs:
             echo
             echo "LAN：$LAN_IP"
             echo "署名：$AUTHOR"
+            if [ -n "$CUSTOM_PLUGINS" ]; then echo "自定义插件：$CUSTOM_PLUGINS"; fi
             echo
             echo '插件：见固件内 /usr/lib/opkg/status 或随附 manifest'
           } > release/RELEASE_BODY.md
@@ -183,8 +209,8 @@ jobs:
       - name: 创建 Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.SOURCE_TAG }}-${{ needs.setup.outputs.tag }}
-          name: ${{ env.SOURCE_TAG }}-${{ needs.setup.outputs.tag }}
+          tag_name: ${{ needs.setup.outputs.source_tag }}-${{ needs.setup.outputs.tag }}
+          name: ${{ needs.setup.outputs.source_tag }}-${{ needs.setup.outputs.tag }}
           body_path: release/RELEASE_BODY.md
           files: |
             release/*.bin

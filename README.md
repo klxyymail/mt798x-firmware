@@ -23,7 +23,7 @@
 
 ## 2. 必装插件
 
-清单定义在 [`plugins.conf`](plugins.conf)，构建和校验共用同一份文件：
+清单定义在唯一配置文件 [`build.config`](build.config) 的 `PLUGINS` 数组中，构建和校验共用同一份文件：
 
 | 插件 | 来源 feed |
 |---|---|
@@ -51,7 +51,7 @@
 
 ## 3. 闭源驱动说明
 
-源码 tag `v25.12.6` 自带联发科闭源 Wi-Fi 方案，关键配置位于 [`config/common.config`](config/common.config)：
+源码 tag `v25.12.6` 自带联发科闭源 Wi-Fi 方案，关键配置位于唯一配置文件 [`build.config`](build.config) 的 `COMMON_CONFIG` 段：
 
 - `CONFIG_MTK_WIFI_DRIVER=y` + `CONFIG_MTK_MT_WIFI_DRIVER_VERSION_7673=y`（mt_wifi 7.6.7.3）
 - `CONFIG_MTK_MT_WIFI_FIRMWARE_PATH_MT7981="mt7981-fw-20260601"`
@@ -122,7 +122,7 @@ firmware/
 └── cmcc_xr30-emmc/
 ```
 
-`verify.sh` 会读取每个机型的 `.manifest`，逐个确认 `plugins.conf` 中全部 15 个插件确实被打包进镜像，而不只是出现在 `.config` 里。（注：25.12 的 apk 固件不生成传统 `.manifest`，此时脚本会给出 warn 并跳过镜像内清单核对，但 `.config` 校验仍强制执行。）
+`verify.sh` 会读取每个机型的 `.manifest`，逐个确认 `build.config` 中全部 15 个必装插件确实被打包进镜像，而不只是出现在 `.config` 里。（注：25.12 的 apk 固件不生成传统 `.manifest`，此时脚本会给出 warn 并跳过镜像内清单核对，但 `.config` 校验仍强制执行。）
 
 ---
 
@@ -135,6 +135,7 @@ firmware/
 - `author`：固件署名
 - `jobs`：并发数，默认 `4`
 - `release`：勾选后把固件发布到 Release（tag 形如 `v25.12.6-20261124`），默认勾选
+- `custom_plugins`：**自定义插件**，多个用空格分隔，留空则不添加。例：`luci-app-zerotier luci-app-socat`。构建时会自动从所有已添加的 feed 中安装这些包及其依赖；找不到（拼错或源里没有）的包会告警并跳过，不中断编译。运行结果写入各机型 `BUILD_INFO.txt` 的 `custom_plugins` 字段。
 
 每个机型一个独立 job，编译完成后上传 artifact（含 `SHA256SUMS` 与 `BUILD_INFO.txt`）。全部机型编译成功后，由一个独立的 `release` job 统一下载 artifact、生成总 `SHA256SUMS` 和一个 Release（4 个机型的 `.bin` 在同一页），避免多 job 并发写同一 tag 造成互相覆盖。也支持 `repository_dispatch` 的 `build` 事件触发。
 
@@ -144,18 +145,18 @@ firmware/
 
 ```
 .
-├── .github/workflows/build.yml   # GitHub Actions 矩阵编译
-├── config/common.config          # 闭源驱动 + 基础系统 + 公共 Kconfig
-├── devices.conf                  # 4 个机型与 Kconfig 符号映射
-├── plugins.conf                  # 15 个必装插件
+├── build.config                  # ★ 唯一配置文件：源码/feed/机型/插件/公共Kconfig
+├── .github/workflows/build.yml   # GitHub Actions 矩阵编译（读取 build.config）
 ├── scripts/
-│   ├── env.sh                    # 路径/变量/解析函数
+│   ├── env.sh                    # 加载 build.config + 路径/解析函数
 │   ├── prepare.sh                # 拉源码、配 feed、打补丁、默认设置
 │   ├── build.sh                  # 主入口
 │   └── verify.sh                 # 配置 + 产物 + 镜像内插件校验
 ├── Makefile
 └── README.md
 ```
+
+> 配置集中化（参照 [P3TERX/Actions-OpenWrt](https://github.com/P3TERX/Actions-OpenWrt) 的单文件思路）：以前分散在 `devices.conf`、`plugins.conf`、`config/common.config`、`env.sh` 中的可变配置，现已全部合并到 [`build.config`](build.config) 一个文件。改机型、加常驻插件、换源码版本/源地址、调公共编译选项，只需编辑这一处；脚本与 workflow 都会自动读取。运行期的临时参数（IP、署名、机型选择、自定义插件）仍通过 Actions 菜单或命令行传入，优先级高于文件内的默认值。
 
 源码 tag `v25.12.6` 已包含闭源驱动和 4 个机型的定义，默认无需打补丁。如需自定义补丁，自行创建 `patches/` 目录并放入 `.patch` 文件，`scripts/prepare.sh` 会自动按文件名顺序应用。
 
