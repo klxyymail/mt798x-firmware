@@ -80,7 +80,7 @@ chmod +x scripts/*.sh
 ./scripts/build.sh --all
 ```
 
-脚本会自动：拉取固定 tag 源码 → 追加 1 个高星插件 feed → 安装依赖包 → 应用 `patches/*.patch` → 写入默认 IP/署名 → 生成 `.config` → `make defconfig` → 编译前校验 → 下载源码包 → 编译 → 收集 `.bin` → 编译后校验。
+脚本会自动：拉取固定 tag 源码 → 追加 1 个高星插件 feed → 安装依赖包 → 写入默认 IP/署名 → 生成 `.config` → `make defconfig` → 编译前校验 → 下载源码包 → 编译 → 收集 `.bin` → 编译后校验。
 
 ### 4.3 常用变体
 
@@ -146,10 +146,11 @@ firmware/
 │   ├── prepare.sh                # 拉源码、配 feed、打补丁、默认设置
 │   ├── build.sh                  # 主入口
 │   └── verify.sh                 # 配置 + 产物 + 镜像内插件校验
-├── patches/                      # 可选补丁（默认空）
 ├── Makefile
 └── README.md
 ```
+
+源码 tag `v25.12.6` 已包含闭源驱动和 4 个机型的定义，默认无需打补丁。如需自定义补丁，自行创建 `patches/` 目录并放入 `.patch` 文件，`scripts/prepare.sh` 会自动按文件名顺序应用。
 
 ---
 
