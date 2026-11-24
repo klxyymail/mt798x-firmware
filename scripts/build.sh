@@ -26,14 +26,16 @@ usage() {
 EOF
 }
 
-DEVICES=()
+# 注意：这里必须用与 .config 中机型定义表 DEVICES 不同的变量名，
+# 否则 --device 传入时会覆盖定义表，导致 device_symbol/all_devices 取不到 Kconfig 符号。
+BUILD_DEVICES=()
 SKIP_PREPARE=0
 SKIP_DOWNLOAD=0
 
 while (( $# > 0 )); do
     case "$1" in
-        -d|--device) shift; DEVICES+=("${1:?--device 缺少机型名称}") ;;
-        -a|--all) DEVICES=() ;;
+        -d|--device) shift; BUILD_DEVICES+=("${1:?--device 缺少机型名称}") ;;
+        -a|--all) BUILD_DEVICES=() ;;
         --jobs) shift; JOBS="${1:?--jobs 缺少数值}" ;;
         --ip) shift; LAN_IP="${1:?--ip 缺少地址}" ;;
         --tag) shift; SOURCE_TAG="${1:?--tag 缺少 tag}" ;;
@@ -43,22 +45,22 @@ while (( $# > 0 )); do
         --skip-download) SKIP_DOWNLOAD=1 ;;
         -h|--help) usage; exit 0 ;;
         -*) die "未知选项：$1（使用 --help 查看用法）" ;;
-        *) DEVICES+=("$1") ;;
+        *) BUILD_DEVICES+=("$1") ;;
     esac
     shift
 done
 
 valid_ip "$LAN_IP" || die "非法 LAN 地址：$LAN_IP"
-if (( ${#DEVICES[@]} == 0 )); then
-    mapfile -t DEVICES < <(all_devices)
+if (( ${#BUILD_DEVICES[@]} == 0 )); then
+    mapfile -t BUILD_DEVICES < <(all_devices)
 fi
-for dev in "${DEVICES[@]}"; do
+for dev in "${BUILD_DEVICES[@]}"; do
     device_exists "$dev" || die "未知机型：$dev。可选值：$(all_devices | tr '\n' ' ')"
 done
 
 export SOURCE_DIR SOURCE_TAG LAN_IP AUTHOR JOBS
 
-log "目标机型：${DEVICES[*]}"
+log "目标机型：${BUILD_DEVICES[*]}"
 log "源码版本：$SOURCE_TAG"
 log "源码目录：$SOURCE_DIR"
 log "LAN 地址：$LAN_IP"
@@ -77,7 +79,7 @@ log "生成 .config"
 {
     echo 'CONFIG_TARGET_mediatek=y'
     echo 'CONFIG_TARGET_mediatek_filogic=y'
-    for dev in "${DEVICES[@]}"; do
+    for dev in "${BUILD_DEVICES[@]}"; do
         sym="$(device_symbol "$dev")" || die "未找到 $dev 的 Kconfig 符号"
         printf '%s=y\n' "$sym"
     done
@@ -142,7 +144,7 @@ fi
 # ---------------------------------------------------------------- 收集产物
 mkdir -p "$FIRMWARE_DIR"
 log "收集固件到 $FIRMWARE_DIR"
-for dev in "${DEVICES[@]}"; do
+for dev in "${BUILD_DEVICES[@]}"; do
     outdir="$FIRMWARE_DIR/$dev"
     mkdir -p "$outdir"
     shopt -s nullglob
@@ -168,7 +170,7 @@ done
     echo "build_date=$(date '+%Y-%m-%d %H:%M:%S %Z')"
     echo "source_repo=$SOURCE_REPO"
     echo "source_tag=$SOURCE_TAG"
-    echo "devices=${DEVICES[*]}"
+    echo "devices=${BUILD_DEVICES[*]}"
     echo "lan_ip=$LAN_IP"
     echo "author=$AUTHOR"
     echo "plugins=$(read_plugins | tr '\n' ' ')"

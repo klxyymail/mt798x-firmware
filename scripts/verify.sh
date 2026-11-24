@@ -5,13 +5,14 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
 CONFIG_ONLY=0
-DEVICES=()
+# 与 .config 的机型定义表 DEVICES 区分，避免覆盖导致 all_devices 失效
+VERIFY_DEVICES=()
 while (( $# > 0 )); do
     case "$1" in
         --config-only) CONFIG_ONLY=1 ;;
         --devices)
             shift
-            while (( $# > 0 )) && [[ "$1" != -* ]]; do DEVICES+=("$1"); shift; done
+            while (( $# > 0 )) && [[ "$1" != -* ]]; do VERIFY_DEVICES+=("$1"); shift; done
             continue
             ;;
         -h|--help) echo "用法: $0 [--config-only] [--devices d1 d2 ...]"; exit 0 ;;
@@ -55,16 +56,16 @@ ok "配置校验通过"
 (( CONFIG_ONLY == 0 )) || exit 0
 
 # ---------------------------------------------------------------- 固件产物
-if (( ${#DEVICES[@]} == 0 )) && [[ -f "$FIRMWARE_DIR/BUILD_INFO.txt" ]]; then
+if (( ${#VERIFY_DEVICES[@]} == 0 )) && [[ -f "$FIRMWARE_DIR/BUILD_INFO.txt" ]]; then
     line="$(grep '^devices=' "$FIRMWARE_DIR/BUILD_INFO.txt" | head -n1 || true)"
     if [[ -n "$line" ]]; then
-        IFS=' ' read -r -a DEVICES <<< "${line#devices=}"
+        IFS=' ' read -r -a VERIFY_DEVICES <<< "${line#devices=}"
     fi
 fi
-(( ${#DEVICES[@]} > 0 )) || mapfile -t DEVICES < <(all_devices)
+(( ${#VERIFY_DEVICES[@]} > 0 )) || mapfile -t VERIFY_DEVICES < <(all_devices)
 
 ARTIFACT_ERRORS=0
-for dev in "${DEVICES[@]}"; do
+for dev in "${VERIFY_DEVICES[@]}"; do
     outdir="$FIRMWARE_DIR/$dev"
     shopt -s nullglob
     bins=("$outdir"/*-squashfs-sysupgrade.bin)
