@@ -102,6 +102,12 @@ log "生成 .config"
     # 新增插件的核心运行包（lucky 用官方源预编译二进制；watchcat 为架构无关工具）
     printf 'CONFIG_PACKAGE_lucky=y\n'
     printf 'CONFIG_PACKAGE_watchcat=y\n'
+    # ssr-plus 在 aarch64 上默认开启这两个子功能，但其依赖的 3proxy /
+    # kcptun-client 包在本源码树的任何 feed 中都不存在，会导致 apk 安装阶段
+    # "3proxy (no such package)" 失败。显式关闭（prepare.sh 也已清理其 Makefile
+    # 中的失效依赖，双保险）。
+    printf 'CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Http_Proxy=n\n'
+    printf 'CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Kcptun=n\n'
 } > .config
 
 if ! make defconfig >/dev/null; then
