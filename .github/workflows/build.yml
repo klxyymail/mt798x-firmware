@@ -17,7 +17,7 @@ on:
       ip:
         description: 'LAN 口默认地址'
         required: false
-        default: '192.168.2.1'
+        default: '192.168.6.1'
         type: string
       author:
         description: '固件署名'
@@ -30,9 +30,9 @@ on:
         default: '4'
         type: string
       release:
-        description: '是否创建 Release'
+        description: '是否创建 Release（默认勾选）'
         required: false
-        default: false
+        default: true
         type: boolean
   repository_dispatch:
     types: [build]
@@ -103,7 +103,7 @@ jobs:
 
       - name: 准备源码与 feeds
         env:
-          LAN_IP: ${{ inputs.ip || '192.168.2.1' }}
+          LAN_IP: ${{ inputs.ip || '192.168.6.1' }}
           AUTHOR: ${{ inputs.author || 'WorkBuddy' }}
         run: ./scripts/prepare.sh
 
@@ -129,7 +129,7 @@ jobs:
         run: |
           ./scripts/build.sh --skip-prepare \
             --device "${{ matrix.device }}" \
-            --ip "${{ inputs.ip || '192.168.2.1' }}" \
+            --ip "${{ inputs.ip || '192.168.6.1' }}" \
             --author "${{ inputs.author || 'WorkBuddy' }}" \
             --jobs "${{ inputs.jobs || '4' }}"
 
@@ -153,7 +153,7 @@ jobs:
             闭源驱动固件（MT7981 / mt_wifi）
 
             机型：${{ matrix.device }}
-            LAN：${{ inputs.ip || '192.168.2.1' }}
+            LAN：${{ inputs.ip || '192.168.6.1' }}
             插件：见固件内 /usr/lib/opkg/status 或随附 manifest
           files: firmware/${{ matrix.device }}/*
         env:

@@ -124,10 +124,10 @@ firmware/
 在仓库 **Actions → Build MT798X Closed-Driver Firmware → Run workflow**：
 
 - `device`：选 `all` 或某个机型
-- `ip`：LAN 默认地址，默认 `192.168.2.1`
+- `ip`：LAN 默认地址，默认 `192.168.6.1`
 - `author`：固件署名
 - `jobs`：并发数，默认 `4`
-- `release`：勾选后把固件发布到 Release（tag 形如 `v25.12.6-20261124`）
+- `release`：勾选后把固件发布到 Release（tag 形如 `v25.12.6-20261124`），默认勾选
 
 每个机型一个独立 job，编译完成后上传 artifact（含 `SHA256SUMS` 与 `BUILD_INFO.txt`）。也支持 `repository_dispatch` 的 `build` 事件触发。
 
@@ -158,7 +158,7 @@ firmware/
 
 - 刷机前备份 `factory` 分区中的校准数据（EEPROM/calibration），闭源驱动依赖它；不同机型的校准数据不可混用。
 - 从原厂系统刷入前通常需要先替换/改造 U-Boot，可参考 [bl-mt798x-dhcpd](https://github.com/Yuzhii0718/bl-mt798x-dhcpd) 与参考仓库的说明。
-- 首次启动请耐心等待 2–3 分钟再访问管理页；默认 LAN 地址见 `BUILD_INFO.txt`（默认 `192.168.2.1`）。
+- 首次启动请耐心等待 2–3 分钟再访问管理页；默认 LAN 地址见 `BUILD_INFO.txt`（默认 `192.168.6.1`）。
 - `make defconfig` 后插件符号消失：通常是 feed 未安装成功，执行 `./scripts/prepare.sh` 后重试。
 - 编译 OOM 或卡死：把 `--jobs` 降到 `2`，并在 Actions 里用 `4` 线程。
 - 下载失败可直接重跑 `./scripts/build.sh --skip-prepare`，`make download` 会续传。

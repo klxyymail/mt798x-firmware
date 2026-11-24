@@ -8,7 +8,7 @@ SOURCE_REPO="${SOURCE_REPO:-https://github.com/shiyu1314/openwrt-source.git}"
 SOURCE_TAG="${SOURCE_TAG:-v25.12.6}"
 SOURCE_DIR="${SOURCE_DIR:-${REPO_ROOT}/source}"
 
-LAN_IP="${LAN_IP:-192.168.2.1}"
+LAN_IP="${LAN_IP:-192.168.6.1}"
 AUTHOR="${AUTHOR:-WorkBuddy}"
 JOBS="${JOBS:-$( (nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4) )}"
 
