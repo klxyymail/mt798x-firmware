@@ -93,6 +93,9 @@ log "生成 .config"
     printf 'CONFIG_PACKAGE_luci-lib-taskd=y\n'
     printf 'CONFIG_PACKAGE_appfilter=y\n'
     printf 'CONFIG_PACKAGE_kmod-oaf=y\n'
+    # luci-app-store 依赖 tar，而 tar 默认开启 PACKAGE_TAR_XZ，需要 xz-utils
+    # 才能满足 store 的 Kconfig depends 条件；否则 defconfig 会把 store 置为 n。
+    printf 'CONFIG_PACKAGE_xz-utils=y\n'
 } > .config
 
 if ! make defconfig >/dev/null; then
