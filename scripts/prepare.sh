@@ -53,6 +53,15 @@ if [[ -d feeds/luci/applications/luci-app-weechat ]]; then
     log "已移除官方 feeds 中的 luci-app-weechat，避免 Kconfig 循环依赖"
 fi
 
+# luci-app-store 的上游 Makefile 硬依赖 +mount-utils，但本源码树及所有官方 feed
+# 中均不存在该包，会导致 defconfig 因依赖无法满足而把 luci-app-store 置为 n。
+# store 实际使用的是 busybox 提供的 mount/umount，去掉这个失效依赖即可。
+STORE_MK="feeds/smallpackage/luci-app-store/Makefile"
+if [[ -f "$STORE_MK" ]] && grep -q 'mount-utils' "$STORE_MK"; then
+    sed -i 's/ +mount-utils//' "$STORE_MK"
+    log "已移除 luci-app-store 对不存在的 mount-utils 包的依赖"
+fi
+
 # 官方 feed 全量安装；第三方大仓只安装需要的包，避免其 base-files/firewall 等
 # 同名包覆盖 OpenWrt 核心包。
 log "安装官方 feeds 中的软件包"
