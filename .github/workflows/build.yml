@@ -11,7 +11,7 @@ on:
         options:
           - all
           - cmcc_rax3000m-256m-nand
-          - cmcc_rax3000m-emmc
+          - cmcc_rax3000m-emcc
           - cmcc_rax3000m-nand
           - cmcc_xr30-emmc
       ip:
@@ -45,11 +45,16 @@ env:
 
 jobs:
   setup:
-    name: 计算待编译机型
+    name: 计算构建参数
     runs-on: ubuntu-24.04
     outputs:
       devices: ${{ steps.select.outputs.devices }}
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
+      - name: 计算发布标签
+        id: tag
+        run: echo "tag=$(TZ=Asia/Shanghai date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+
       - name: 选择机型
         id: select
         env:
@@ -58,7 +63,7 @@ jobs:
         run: |
           ALL='["cmcc_rax3000m-256m-nand","cmcc_rax3000m-emmc","cmcc_rax3000m-nand","cmcc_xr30-emmc"]'
           case "$DEVICE" in
-            cmcc_rax3000m-256m-nand|cmcc_rax3000m-emmc|cmcc_rax3000m-nand|cmcc_xr30-emmc)
+            cmcc_rax3000m-256m-nand|cmcc_rax3000m-emcc|cmcc_rax3000m-nand|cmcc_xr30-emmc)
               if [ "$EVENT" = "workflow_dispatch" ]; then
                 printf 'devices=["%s"]\n' "$DEVICE" >> "$GITHUB_OUTPUT"
               else
@@ -97,9 +102,6 @@ jobs:
             python3-setuptools rsync swig unzip zlib1g-dev file wget \
             libelf-dev qemu-utils ccache
           sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-
-      - name: 设置构建变量
-        run: echo "TAG=$(date +'%Y%m%d')" >> "$GITHUB_ENV"
 
       - name: 准备源码与 feeds
         env:
@@ -143,18 +145,50 @@ jobs:
             firmware/BUILD_INFO.txt
           if-no-files-found: error
 
+  release:
+    name: 发布固件到 Release
+    needs: [setup, build]
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 下载全部机型固件
+        uses: actions/download-artifact@v4
+        with:
+          pattern: firmware-*
+          path: artifacts
+
+      - name: 整理发布文件
+        env:
+          LAN_IP: ${{ inputs.ip || '192.168.6.1' }}
+          AUTHOR: ${{ inputs.author || 'WorkBuddy' }}
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name '*.bin' -o -name '*.manifest' \) -exec cp -f {} release/ \;
+          cd release
+          sha256sum *.bin > SHA256SUMS
+          cd ..
+          {
+            echo '闭源驱动固件（MT7981 / mt_wifi）'
+            echo
+            echo '包含机型：'
+            for f in release/*.bin; do echo "- $(basename "$f")"; done
+            echo
+            echo "LAN：$LAN_IP"
+            echo "署名：$AUTHOR"
+            echo
+            echo '插件：见固件内 /usr/lib/opkg/status 或随附 manifest'
+          } > release/RELEASE_BODY.md
+          ls -lh release
+
       - name: 创建 Release
-        if: github.event_name == 'workflow_dispatch' && inputs.release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.SOURCE_TAG }}-${{ env.TAG }}
-          name: ${{ env.SOURCE_TAG }}-${{ env.TAG }}
-          body: |
-            闭源驱动固件（MT7981 / mt_wifi）
-
-            机型：${{ matrix.device }}
-            LAN：${{ inputs.ip || '192.168.6.1' }}
-            插件：见固件内 /usr/lib/opkg/status 或随附 manifest
-          files: firmware/${{ matrix.device }}/*
+          tag_name: ${{ env.SOURCE_TAG }}-${{ needs.setup.outputs.tag }}
+          name: ${{ env.SOURCE_TAG }}-${{ needs.setup.outputs.tag }}
+          body_path: release/RELEASE_BODY.md
+          files: |
+            release/*.bin
+            release/*.manifest
+            release/SHA256SUMS
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

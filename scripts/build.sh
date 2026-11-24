@@ -95,7 +95,9 @@ log "生成 .config"
     printf 'CONFIG_PACKAGE_kmod-oaf=y\n'
 } > .config
 
-make defconfig >/dev/null
+if ! make defconfig >/dev/null; then
+    die "make defconfig 失败（常见原因：feed 包 Kconfig 循环依赖）；请检查上方错误后重试"
+fi
 
 log "编译前校验配置"
 "$REPO_ROOT/scripts/verify.sh" --config-only

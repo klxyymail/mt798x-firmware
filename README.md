@@ -129,7 +129,7 @@ firmware/
 - `jobs`：并发数，默认 `4`
 - `release`：勾选后把固件发布到 Release（tag 形如 `v25.12.6-20261124`），默认勾选
 
-每个机型一个独立 job，编译完成后上传 artifact（含 `SHA256SUMS` 与 `BUILD_INFO.txt`）。也支持 `repository_dispatch` 的 `build` 事件触发。
+每个机型一个独立 job，编译完成后上传 artifact（含 `SHA256SUMS` 与 `BUILD_INFO.txt`）。全部机型编译成功后，由一个独立的 `release` job 统一下载 artifact、生成总 `SHA256SUMS` 和一个 Release（4 个机型的 `.bin` 在同一页），避免多 job 并发写同一 tag 造成互相覆盖。也支持 `repository_dispatch` 的 `build` 事件触发。
 
 ---
 

@@ -44,6 +44,15 @@ if [[ -d feeds/luci/applications/luci-app-diskman ]]; then
     log "已移除官方 feeds 中的 luci-app-diskman，避免与插件源冲突"
 fi
 
+# 官方 luci feed 的 luci-app-weechat 与 packages feed 的 weechat-full/minimal
+# 存在 Kconfig 循环依赖（weechat-minimal is selected by luci-app-weechat，
+# 而 weechat-full 又 depends on weechat-minimal），会导致 make defconfig 报
+# "recursive dependency detected" 并中止。本仓库不需要 weechat，直接移除。
+if [[ -d feeds/luci/applications/luci-app-weechat ]]; then
+    rm -rf feeds/luci/applications/luci-app-weechat
+    log "已移除官方 feeds 中的 luci-app-weechat，避免 Kconfig 循环依赖"
+fi
+
 # 官方 feed 全量安装；第三方大仓只安装需要的包，避免其 base-files/firewall 等
 # 同名包覆盖 OpenWrt 核心包。
 log "安装官方 feeds 中的软件包"
