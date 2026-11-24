@@ -74,7 +74,11 @@ jobs:
 
       - name: 计算发布标签
         id: tag
-        run: echo "tag=$(TZ=Asia/Shanghai date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+        # tag 必须每次运行都唯一，否则 softprops/action-gh-release 会覆盖旧 Release
+        # 的同名固件，导致历史编译产物丢失。日期+时分秒+run_number 保证不重复。
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: echo "tag=$(TZ=Asia/Shanghai date +'%Y%m%d-%H%M')-r${RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: 选择机型
         id: select
