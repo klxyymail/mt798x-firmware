@@ -55,7 +55,7 @@ jobs:
       source_tag: ${{ steps.config.outputs.source_tag }}
     steps:
       - name: 检出仓库
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # 唯一配置源：机型与源码版本都从 .config 读取，不在 workflow 里重复维护。
       - name: 读取 .config
@@ -107,7 +107,7 @@ jobs:
 
     steps:
       - name: 检出仓库
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 释放磁盘空间
         run: |
@@ -134,7 +134,7 @@ jobs:
       # 缓存分层：工具链/staging 只随源码版本变化，配置改动不会使其失效（最耗时）；
       # dl 下载包单独缓存、key 更宽松；ccache 随配置 hash 变化，命中即跳过大量 C 编译。
       - name: 恢复工具链缓存（staging_dir）
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: source/staging_dir
           key: ${{ runner.os }}-mt798x-staging-${{ needs.setup.outputs.source_tag }}
@@ -142,7 +142,7 @@ jobs:
             ${{ runner.os }}-mt798x-staging-
 
       - name: 恢复下载包缓存（dl）
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: source/dl
           key: ${{ runner.os }}-mt798x-dl-${{ needs.setup.outputs.source_tag }}
@@ -150,7 +150,7 @@ jobs:
             ${{ runner.os }}-mt798x-dl-
 
       - name: 恢复 ccache 缓存
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: source/.ccache
           key: ${{ runner.os }}-mt798x-ccache-${{ needs.setup.outputs.source_tag }}-${{ hashFiles('.config', 'scripts/*.sh') }}
@@ -177,7 +177,7 @@ jobs:
             --jobs "${{ inputs.jobs || '4' }}"
 
       - name: 上传固件
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: firmware-${{ matrix.device }}
           path: |
@@ -193,7 +193,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 下载全部机型固件
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: firmware-*
           path: artifacts
@@ -224,7 +224,7 @@ jobs:
           ls -lh release
 
       - name: 创建 Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.4
         with:
           tag_name: ${{ needs.setup.outputs.source_tag }}-${{ needs.setup.outputs.tag }}
           name: ${{ needs.setup.outputs.source_tag }}-${{ needs.setup.outputs.tag }}
