@@ -67,6 +67,18 @@ if [[ -f "$STORE_MK" ]]; then
     log "已清理 luci-app-store 的失效依赖（mount-utils/libuci-lua/EXTRA_DEPENDS）"
 fi
 
+# kenzok8/small-package 打包缺陷：appfilter(目录 open-app-filter) 与 luci-app-oaf
+# 都把各自的 ACL 安装为 /usr/share/rpcd/acl.d/luci-app-oaf.json，但两份内容不同
+# （appfilter 授予 oaf / fwx 的 ubus 权限；luci-app-oaf 授予 appfilter 的 uci 权限）。
+# 25.12 使用 apk，禁止包间覆盖同一路径，package/install 会报
+# "trying to overwrite ... owned by appfilter" 并让整个 world 构建失败。
+# 把 appfilter 侧的 ACL 改名为 oaf.json（与其权限名一致），两份 ACL 都保留。
+APPFILTER_MK="feeds/smallpackage/open-app-filter/Makefile"
+if [[ -f "$APPFILTER_MK" ]]; then
+    sed -i 's#$(INSTALL_DATA) ./files/luci-app-oaf.json $(1)/usr/share/rpcd/acl.d/#$(INSTALL_DATA) ./files/luci-app-oaf.json $(1)/usr/share/rpcd/acl.d/oaf.json#' "$APPFILTER_MK"
+    log "已修复 appfilter 与 luci-app-oaf 的 ACL 文件名冲突（appfilter 侧改名 oaf.json）"
+fi
+
 # 官方 feed 全量安装；第三方大仓只安装需要的包，避免其 base-files/firewall 等
 # 同名包覆盖 OpenWrt 核心包。
 log "安装官方 feeds 中的软件包"
