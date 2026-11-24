@@ -99,6 +99,16 @@ if ! make defconfig >/dev/null; then
     die "make defconfig 失败（常见原因：feed 包 Kconfig 循环依赖）；请检查上方错误后重试"
 fi
 
+# 诊断：必选 luci 插件若在 defconfig 后丢失，打印其 Kconfig 依赖状态便于定位
+for sym in luci-app-store luci-app-diskman luci-app-oaf luci-theme-argon; do
+    if ! grep -qxF "CONFIG_PACKAGE_${sym}=y" .config; then
+        warn "诊断：${sym} 未进入 .config，相关行如下："
+        grep -iE "${sym}|luci-lua-runtime|mount-utils" .config | sed 's/^/    /' || true
+        dmp="logs/package/feeds/smallpackage/${sym}/dump.txt"
+        [[ -f "$dmp" ]] && { echo "    --- $dmp ---"; grep -iE 'depends|select|missing|error' "$dmp" | head -20 | sed 's/^/    /'; } || true
+    fi
+done
+
 log "编译前校验配置"
 "$REPO_ROOT/scripts/verify.sh" --config-only
 
