@@ -128,10 +128,10 @@ firmware/
 - `ip`：LAN 默认地址，默认 `192.168.6.1`
 - `author`：固件署名
 - `jobs`：并发数，默认 `4`
-- `release`：勾选后把固件发布到 Release（tag 形如 `v25.12.6-20261124`），默认勾选
+- `release`：勾选后把固件发布到 Release（tag 形如 `v25.12.6-20261124-2100-r5`，含日期、时分和 GitHub 运行序号，每次编译独立保留、不覆盖历史固件），默认勾选
 - `custom_plugins`：**自定义插件**，多个用空格分隔，留空则不添加。例：`luci-app-zerotier luci-app-socat`。构建时会自动从所有已添加的 feed 中安装这些包及其依赖；找不到（拼错或源里没有）的包会告警并跳过，不中断编译。运行结果写入各机型 `BUILD_INFO.txt` 的 `custom_plugins` 字段。
 
-每个机型一个独立 job，编译完成后上传 artifact（含 `SHA256SUMS` 与 `BUILD_INFO.txt`）。全部机型编译成功后，由一个独立的 `release` job 统一下载 artifact、生成总 `SHA256SUMS` 和一个 Release（4 个机型的 `.bin` 在同一页），避免多 job 并发写同一 tag 造成互相覆盖。也支持 `repository_dispatch` 的 `build` 事件触发。
+每个机型一个独立 job，编译完成后上传 artifact（含 `SHA256SUMS` 与 `BUILD_INFO.txt`）。全部机型编译成功后，由一个独立的 `release` job 统一下载 artifact、生成总 `SHA256SUMS` 和一个 Release（4 个机型的 `.bin` 在同一页），避免多 job 并发写同一 tag 造成互相覆盖。Release tag 由「日期-时分-运行序号」组成，每次运行都是新 tag，因此**历史编译的固件都会保留**，不会被后续编译覆盖（在 Releases 页面可查看/下载历次版本）。也支持 `repository_dispatch` 的 `build` 事件触发。
 
 ---
 
