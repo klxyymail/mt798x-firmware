@@ -68,6 +68,21 @@ if [[ -f "$STORE_MK" ]]; then
     log "已清理 luci-app-store 的失效依赖（mount-utils/libuci-lua/EXTRA_DEPENDS）"
 fi
 
+# luci-app-ssr-plus 上游 Makefile 在 aarch64 上默认开启 INCLUDE_Http_Proxy，
+# 但依赖的 3proxy 包在 small-package 及官方 feed 中都不存在（feeds install 阶段
+# 只给出 "No feed for package '3proxy' found" 警告）；apk 建根文件系统时会报
+# "3proxy (no such package) required by luci-app-ssr-plus" 使 package/install 失败，
+# 整个 world 构建中断。同理 kcptun-client 也不存在，虽然默认关闭，一并清理。
+# 直接删除这两条失效的可选依赖（不影响 SSR-Plus 其他协议功能）。
+SSRPLUS_MK="feeds/smallpackage/luci-app-ssr-plus/Makefile"
+if [[ -f "$SSRPLUS_MK" ]]; then
+    sed -i \
+        -e '/INCLUDE_Http_Proxy:3proxy/d' \
+        -e '/INCLUDE_Kcptun:kcptun-client/d' \
+        "$SSRPLUS_MK"
+    log "已清理 luci-app-ssr-plus 的失效依赖（3proxy/kcptun-client）"
+fi
+
 # kenzok8/small-package 打包缺陷：appfilter(目录 open-app-filter) 与 luci-app-oaf
 # 都把各自的 ACL 安装为 /usr/share/rpcd/acl.d/luci-app-oaf.json，但两份内容不同
 # （appfilter 授予 oaf / fwx 的 ubus 权限；luci-app-oaf 授予 appfilter 的 uci 权限）。
