@@ -29,7 +29,7 @@ cd "$SOURCE_DIR"
 
 # ---------------------------------------------------------------- feeds
 # feeds.conf 优先于 feeds.conf.default；每次重新生成，保证可重复。
-log "写入 feeds.conf（官方源 + build.config 中定义的自定义源）"
+log "写入 feeds.conf（官方源 + .config 中定义的自定义源）"
 cp feeds.conf.default feeds.conf
 while IFS='|' read -r alias url; do
     [[ -n "$alias" && -n "$url" ]] || continue

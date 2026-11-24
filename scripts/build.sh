@@ -8,8 +8,8 @@ usage() {
 用法: $0 [选项] [机型...]
 
 选项:
-  -d, --device NAME    指定机型（可重复）；可选值见 build.config 的 DEVICES
-  -a, --all            编译 build.config 中全部机型（默认）
+  -d, --device NAME    指定机型（可重复）；可选值见 .config 的 DEVICES
+  -a, --all            编译 .config 中全部机型（默认）
       --jobs N         并行编译线程数（默认 ${JOBS}）
       --ip ADDR        LAN 口默认地址（默认 ${LAN_IP}）
       --tag TAG        源码 tag（默认 ${SOURCE_TAG}）
@@ -81,7 +81,7 @@ log "生成 .config"
         sym="$(device_symbol "$dev")" || die "未找到 $dev 的 Kconfig 符号"
         printf '%s=y\n' "$sym"
     done
-    # 公共编译配置来自 build.config 的 COMMON_CONFIG（单一配置文件）
+    # 公共编译配置来自 .config 的 COMMON_CONFIG（单一配置文件）
     common_config
     # 检测到 ccache 则启用编译缓存（CI 与各人本地均可受益）
     if command -v ccache >/dev/null 2>&1; then

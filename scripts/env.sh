@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # 公共环境变量与辅助函数。所有脚本通过 source 引入本文件。
-# 所有可变配置集中在仓库根目录的 build.config（P3TERX 风格的单文件配置）。
+# 所有可变配置集中在仓库根目录的 .config（P3TERX 风格的单文件配置）。
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_CONF="${REPO_ROOT}/build.config"
+BUILD_CONF="${REPO_ROOT}/.config"
 
 [[ -f "$BUILD_CONF" ]] || { printf '[FAIL] 找不到配置文件：%s\n' "$BUILD_CONF" >&2; exit 1; }
 # shellcheck disable=SC1090
@@ -28,7 +28,7 @@ warn() { printf '%b[WARN]%b %s\n' "$C_YELLOW" "$C_RESET" "$*" >&2; }
 die()  { printf '%b[FAIL]%b %s\n' "$C_RED" "$C_RESET" "$*" >&2; exit 1; }
 
 # ---------------------------------------------------------------- 配置读取
-# 机型：原样输出 build.config 中 DEVICES 数组元素（key|符号|说明|闪存）
+# 机型：原样输出 .config 中 DEVICES 数组元素（key|符号|说明|闪存）
 read_devices() {
     printf '%s\n' "${DEVICES[@]}"
 }
@@ -51,7 +51,7 @@ read_custom_plugins() {
     done
 }
 
-# 必装插件 = build.config 固定清单 + 运行期自定义插件
+# 必装插件 = .config 固定清单 + 运行期自定义插件
 read_plugins() {
     printf '%s\n' "${PLUGINS[@]}"
     read_custom_plugins
