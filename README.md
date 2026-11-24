@@ -27,18 +27,18 @@
 
 | 插件 | 来源 feed |
 |---|---|
-| `luci-app-store` | iStore 源 `https://github.com/istoreos/istore.git^main`（同时引入 `luci-lib-taskd`） |
+| `luci-app-store` | `kenzok8/small-package.git^main`（1708 星，含 `luci-lib-taskd` / `luci-lib-xterm` / `taskd`） |
 | `luci-app-eqos-mtk` | 源码内置 `package/mtk/applications` |
 | `luci-app-mtwifi-cfg` | 源码内置 `package/mtk/applications` |
 | `luci-app-turboacc-mtk` | 源码内置 `package/mtk/applications` |
 | `luci-app-ttyd` | OpenWrt 官方 luci feed |
 | `luci-app-upnp` | OpenWrt 官方 luci feed |
-| `luci-app-diskman` | `shiyu1314/openwrt-feeds.git^packages` |
-| `luci-theme-argon` | `shiyu1314/openwrt-feeds.git^packages` |
-| `luci-app-oaf` | `shiyu1314/openwrt-feeds.git^packages` |
+| `luci-app-diskman` | `kenzok8/small-package.git^main` |
+| `luci-theme-argon` | `kenzok8/small-package.git^main` |
+| `luci-app-oaf` | `kenzok8/small-package.git^main` |
 | `luci-i18n-oaf-zh-cn` | 由 `luci-app-oaf/po/zh_Hans` 经 `luci.mk` 自动生成（`zh_Hans` → `zh-cn`） |
 
-`luci-app-oaf` 的底层依赖 `appfilter` 与 `kmod-oaf` 也由脚本显式勾选，避免LuCI 有入口但后台服务缺失。
+插件源统一使用 [`kenzok8/small-package`](https://github.com/kenzok8/small-package)（1708 星、持续更新）。`luci-app-oaf` 的底层依赖由同一源的 `open-app-filter`（提供 `appfilter`）与 `oaf`（提供 `kmod-oaf`）目录提供，脚本只按需安装这些包，不把该大仓的 `base-files`、`firewall` 等同名包装进来覆盖 OpenWrt 核心组件。
 
 ---
 
@@ -80,7 +80,7 @@ chmod +x scripts/*.sh
 ./scripts/build.sh --all
 ```
 
-脚本会自动：拉取固定 tag 源码 → 追加 2 个自定义 feed → 安装依赖包 → 应用 `patches/*.patch` → 写入默认 IP/署名 → 生成 `.config` → `make defconfig` → 编译前校验 → 下载源码包 → 编译 → 收集 `.bin` → 编译后校验。
+脚本会自动：拉取固定 tag 源码 → 追加 1 个高星插件 feed → 安装依赖包 → 应用 `patches/*.patch` → 写入默认 IP/署名 → 生成 `.config` → `make defconfig` → 编译前校验 → 下载源码包 → 编译 → 收集 `.bin` → 编译后校验。
 
 ### 4.3 常用变体
 
@@ -166,8 +166,8 @@ firmware/
 
 ## 8. 上游来源
 
-- 源码：`https://github.com/shiyu1314/openwrt-source.git`，tag `v25.12.6`（含 MT7981 闭源驱动）
+- 实际编译源码：`https://github.com/shiyu1314/openwrt-source.git`，tag `v25.12.6`（三个 workflow 均 clone 此仓库并 checkout 最新 `v25.*` tag；其 README 指向联发科 `mtk-openwrt-feeds`，闭源驱动即来自这里）
 - 参考实现：`https://github.com/shiyu1314/openwrt-rax3000m`
-- 插件源：`https://github.com/shiyu1314/openwrt-feeds.git` 分支 `packages`
-- iStore：`https://github.com/istoreos/istore.git` 分支 `main`
+- 上游核心源码（README 致谢）：`https://github.com/chasey-dev/immortalwrt-mt798x-rebase.git`，分支 `25.12`（306 星；`ImmortalWrt with MTK OpenWrt Feeds patches imported`）
+- 插件源：`https://github.com/kenzok8/small-package.git`，分支 `main`（1708 星）
 - U-Boot：`https://github.com/Yuzhii0718/bl-mt798x-dhcpd`

@@ -29,24 +29,33 @@ cd "$SOURCE_DIR"
 
 # ---------------------------------------------------------------- feeds
 # feeds.conf 优先于 feeds.conf.default；每次重新生成，保证可重复。
-log "写入 feeds.conf（官方源 + 自定义插件源）"
+log "写入 feeds.conf（官方源 + 高星插件源 kenzok8/small-package）"
 cp feeds.conf.default feeds.conf
 cat >> feeds.conf <<'EOF'
-src-git xd https://github.com/shiyu1314/openwrt-feeds.git^packages
-src-git istore https://github.com/istoreos/istore.git^main
+src-git small-package https://github.com/kenzok8/small-package.git^main
 EOF
 
 log "更新 feeds"
 ./scripts/feeds update -a
 
-# xd 源提供维护版 luci-app-diskman；移除官方同名包避免冲突。
+# small-package 提供维护版 luci-app-diskman；移除官方同名包避免重复定义。
 if [[ -d feeds/luci/applications/luci-app-diskman ]]; then
     rm -rf feeds/luci/applications/luci-app-diskman
-    log "已移除官方 feeds 中的 luci-app-diskman，避免与 xd 源冲突"
+    log "已移除官方 feeds 中的 luci-app-diskman，避免与插件源冲突"
 fi
 
-log "安装 feeds 中的软件包"
-./scripts/feeds install -a >/dev/null
+# 官方 feed 全量安装；第三方大仓只安装需要的包，避免其 base-files/firewall 等
+# 同名包覆盖 OpenWrt 核心包。
+log "安装官方 feeds 中的软件包"
+while IFS= read -r feed; do
+    [[ -n "$feed" ]] && ./scripts/feeds install -a -p "$feed" >/dev/null
+done < <(awk '$1 ~ /^src-/ && NF >= 2 {print $2}' feeds.conf.default)
+
+log "从 small-package 安装所需插件及依赖"
+./scripts/feeds install -p small-package \
+    luci-app-store luci-lib-taskd luci-lib-xterm taskd \
+    luci-app-diskman luci-theme-argon \
+    luci-app-oaf open-app-filter oaf >/dev/null
 
 # ---------------------------------------------------------------- 补丁
 shopt -s nullglob
