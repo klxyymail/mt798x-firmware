@@ -82,6 +82,10 @@ log "生成 .config"
         printf '%s=y\n' "$sym"
     done
     cat "$COMMON_CONF"
+    # 检测到 ccache 则启用编译缓存（CI 与各人本地均可受益）
+    if command -v ccache >/dev/null 2>&1; then
+        echo 'CONFIG_CCACHE=y'
+    fi
     while IFS= read -r plugin; do
         printf 'CONFIG_PACKAGE_%s=y\n' "$plugin"
     done < <(read_plugins)

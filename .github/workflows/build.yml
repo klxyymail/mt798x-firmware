@@ -44,21 +44,40 @@ env:
   SOURCE_TAG: v25.12.6
 
 jobs:
+  setup:
+    name: 计算待编译机型
+    runs-on: ubuntu-24.04
+    outputs:
+      devices: ${{ steps.select.outputs.devices }}
+    steps:
+      - name: 选择机型
+        id: select
+        env:
+          EVENT: ${{ github.event_name }}
+          DEVICE: ${{ inputs.device }}
+        run: |
+          ALL='["cmcc_rax3000m-256m-nand","cmcc_rax3000m-emmc","cmcc_rax3000m-nand","cmcc_xr30-emmc"]'
+          case "$DEVICE" in
+            cmcc_rax3000m-256m-nand|cmcc_rax3000m-emmc|cmcc_rax3000m-nand|cmcc_xr30-emmc)
+              if [ "$EVENT" = "workflow_dispatch" ]; then
+                printf 'devices=["%s"]\n' "$DEVICE" >> "$GITHUB_OUTPUT"
+              else
+                printf 'devices=%s\n' "$ALL" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            *)
+              printf 'devices=%s\n' "$ALL" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
   build:
     name: 编译 - ${{ matrix.device }}
-    if: >-
-      github.event_name != 'workflow_dispatch' ||
-      inputs.device == 'all' ||
-      matrix.device == inputs.device
+    needs: setup
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        device:
-          - cmcc_rax3000m-256m-nand
-          - cmcc_rax3000m-emmc
-          - cmcc_rax3000m-nand
-          - cmcc_xr30-emmc
+        device: ${{ fromJson(needs.setup.outputs.devices) }}
 
     steps:
       - name: 检出仓库
@@ -82,9 +101,33 @@ jobs:
       - name: 设置构建变量
         run: echo "TAG=$(date +'%Y%m%d')" >> "$GITHUB_ENV"
 
+      - name: 准备源码与 feeds
+        env:
+          LAN_IP: ${{ inputs.ip || '192.168.2.1' }}
+          AUTHOR: ${{ inputs.author || 'WorkBuddy' }}
+        run: ./scripts/prepare.sh
+
+      - name: 恢复工具链与下载包缓存
+        uses: actions/cache@v4
+        with:
+          path: |
+            source/staging_dir
+            source/dl
+            source/.ccache
+          key: ${{ runner.os }}-mt798x-staging-${{ env.SOURCE_TAG }}-${{ hashFiles('config/common.config', 'plugins.conf', 'devices.conf') }}
+          restore-keys: |
+            ${{ runner.os }}-mt798x-staging-${{ env.SOURCE_TAG }}-
+            ${{ runner.os }}-mt798x-staging-
+
+      - name: 配置 ccache
+        run: |
+          echo "CCACHE_DIR=$GITHUB_WORKSPACE/source/.ccache" >> "$GITHUB_ENV"
+          ccache -M 8G
+          ccache -z
+
       - name: 编译固件
         run: |
-          ./scripts/build.sh \
+          ./scripts/build.sh --skip-prepare \
             --device "${{ matrix.device }}" \
             --ip "${{ inputs.ip || '192.168.2.1' }}" \
             --author "${{ inputs.author || 'WorkBuddy' }}" \
