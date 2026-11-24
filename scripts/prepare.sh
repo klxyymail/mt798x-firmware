@@ -92,7 +92,8 @@ log "从 small-package 安装所需插件及依赖"
     luci-app-store luci-lib-taskd luci-lib-xterm taskd \
     luci-app-diskman luci-theme-argon \
     luci-app-oaf open-app-filter oaf \
-    luci-app-wrtbwmon >/dev/null
+    luci-app-wrtbwmon \
+    luci-app-ssr-plus luci-app-passwall >/dev/null
 
 # Lucky 用官方源 gdy666/luci-app-lucky（兼容 25.12 apk，核心程序按架构下载
 # 预编译包，不依赖老式 Lua 编译）。luci-i18n-lucky-zh-cn 由该 Makefile 内的
