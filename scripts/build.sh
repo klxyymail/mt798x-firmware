@@ -96,6 +96,9 @@ log "生成 .config"
     # luci-app-store 依赖 tar，而 tar 默认开启 PACKAGE_TAR_XZ，需要 xz-utils
     # 才能满足 store 的 Kconfig depends 条件；否则 defconfig 会把 store 置为 n。
     printf 'CONFIG_PACKAGE_xz-utils=y\n'
+    # 新增插件的核心运行包（lucky 用官方源预编译二进制；watchcat 为架构无关工具）
+    printf 'CONFIG_PACKAGE_lucky=y\n'
+    printf 'CONFIG_PACKAGE_watchcat=y\n'
 } > .config
 
 if ! make defconfig >/dev/null; then
@@ -103,7 +106,8 @@ if ! make defconfig >/dev/null; then
 fi
 
 # 诊断：必选 luci 插件若在 defconfig 后丢失，打印其 Kconfig 依赖状态便于定位
-for sym in luci-app-store luci-app-diskman luci-app-oaf luci-theme-argon; do
+for sym in luci-app-store luci-app-diskman luci-app-oaf luci-theme-argon \
+           luci-app-lucky luci-app-wrtbwmon luci-app-watchcat lucky watchcat; do
     if ! grep -qxF "CONFIG_PACKAGE_${sym}=y" .config; then
         warn "诊断：${sym} 未进入 .config，相关行如下："
         grep -iE "${sym}|luci-lua-runtime|mount-utils" .config | sed 's/^/    /' || true

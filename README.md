@@ -37,8 +37,15 @@
 | `luci-theme-argon` | `kenzok8/small-package.git^main` |
 | `luci-app-oaf` | `kenzok8/small-package.git^main` |
 | `luci-i18n-oaf-zh-cn` | 由 `luci-app-oaf/po/zh_Hans` 经 `luci.mk` 自动生成（`zh_Hans` → `zh-cn`） |
+| `luci-app-lucky` | 官方 [`gdy666/luci-app-lucky.git^main`](https://github.com/gdy666/luci-app-lucky)（核心包 `lucky` 按架构下载预编译二进制） |
+| `luci-i18n-lucky-zh-cn` | 由官方 lucky 源 `po/zh_Hans` 经 `luci.mk` 自动生成 |
+| `luci-app-wrtbwmon` | `kenzok8/small-package.git^main`（依赖官方 `luci-app-nlbwmon`） |
+| `luci-app-watchcat` | OpenWrt 官方 luci feed（核心包 `watchcat` 来自官方 packages feed） |
+| `luci-i18n-watchcat-zh-cn` | 由官方 luci 源 `po/zh_Hans` 经 `luci.mk` 自动生成 |
 
-插件源统一使用 [`kenzok8/small-package`](https://github.com/kenzok8/small-package)（1708 星、持续更新）。`luci-app-oaf` 的底层依赖由同一源的 `open-app-filter`（提供 `appfilter`）与 `oaf`（提供 `kmod-oaf`）目录提供，脚本只按需安装这些包，不把该大仓的 `base-files`、`firewall` 等同名包装进来覆盖 OpenWrt 核心组件。
+插件源以 [`kenzok8/small-package`](https://github.com/kenzok8/small-package)（1708 星、持续更新）为主，Lucky 单独使用其官方源 [`gdy666/luci-app-lucky`](https://github.com/gdy666/luci-app-lucky)（兼容 25.12 apk，避免第三方旧版的老式 Lua 依赖坑）；watchcat 使用 OpenWrt 官方 feed。`luci-app-oaf` 的底层依赖由 small-package 的 `open-app-filter`（提供 `appfilter`）与 `oaf`（提供 `kmod-oaf`）目录提供，脚本只按需安装这些包，不把该大仓的 `base-files`、`firewall` 等同名包装进来覆盖 OpenWrt 核心组件。
+
+> 说明：用户最初要求的 `luci-app-ssr-plus`、`luci-app-passwall` 属于翻墙代理工具，未纳入固件；其余 5 个常规插件（Lucky 官方版+中文包、wrtbwmon、watchcat+中文包）已加入。
 
 ---
 
@@ -80,7 +87,7 @@ chmod +x scripts/*.sh
 ./scripts/build.sh --all
 ```
 
-脚本会自动：拉取固定 tag 源码 → 追加 1 个高星插件 feed → 安装依赖包 → 写入默认 IP/署名 → 生成 `.config` → `make defconfig` → 编译前校验 → 下载源码包 → 编译 → 收集 `.bin` → 编译后校验。
+脚本会自动：拉取固定 tag 源码 → 追加 2 个插件 feed（kenzok8/small-package + gdy666/lucky） → 安装依赖包 → 写入默认 IP/署名 → 生成 `.config` → `make defconfig` → 编译前校验 → 下载源码包 → 编译 → 收集 `.bin` → 编译后校验。
 
 ### 4.3 常用变体
 
@@ -115,7 +122,7 @@ firmware/
 └── cmcc_xr30-emmc/
 ```
 
-`verify.sh` 会读取每个机型的 `.manifest`，逐个确认 10 个插件确实被打包进镜像，而不只是出现在 `.config` 里。
+`verify.sh` 会读取每个机型的 `.manifest`，逐个确认 `plugins.conf` 中全部 15 个插件确实被打包进镜像，而不只是出现在 `.config` 里。（注：25.12 的 apk 固件不生成传统 `.manifest`，此时脚本会给出 warn 并跳过镜像内清单核对，但 `.config` 校验仍强制执行。）
 
 ---
 
@@ -140,7 +147,7 @@ firmware/
 ├── .github/workflows/build.yml   # GitHub Actions 矩阵编译
 ├── config/common.config          # 闭源驱动 + 基础系统 + 公共 Kconfig
 ├── devices.conf                  # 4 个机型与 Kconfig 符号映射
-├── plugins.conf                  # 10 个必装插件
+├── plugins.conf                  # 15 个必装插件
 ├── scripts/
 │   ├── env.sh                    # 路径/变量/解析函数
 │   ├── prepare.sh                # 拉源码、配 feed、打补丁、默认设置
@@ -170,5 +177,5 @@ firmware/
 - 实际编译源码：`https://github.com/shiyu1314/openwrt-source.git`，tag `v25.12.6`（三个 workflow 均 clone 此仓库并 checkout 最新 `v25.*` tag；其 README 指向联发科 `mtk-openwrt-feeds`，闭源驱动即来自这里）
 - 参考实现：`https://github.com/shiyu1314/openwrt-rax3000m`
 - 上游核心源码（README 致谢）：`https://github.com/chasey-dev/immortalwrt-mt798x-rebase.git`，分支 `25.12`（306 星；`ImmortalWrt with MTK OpenWrt Feeds patches imported`）
-- 插件源：`https://github.com/kenzok8/small-package.git`，分支 `main`（1708 星）
+- 插件源：`https://github.com/kenzok8/small-package.git`，分支 `main`（1708 星）；Lucky 用官方源 `https://github.com/gdy666/luci-app-lucky.git`，分支 `main`；watchcat 用 OpenWrt 官方 luci/packages feed
 - U-Boot：`https://github.com/Yuzhii0718/bl-mt798x-dhcpd`

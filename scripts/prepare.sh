@@ -29,10 +29,11 @@ cd "$SOURCE_DIR"
 
 # ---------------------------------------------------------------- feeds
 # feeds.conf 优先于 feeds.conf.default；每次重新生成，保证可重复。
-log "写入 feeds.conf（官方源 + 高星插件源 kenzok8/small-package）"
+log "写入 feeds.conf（官方源 + kenzok8/small-package + gdy666/lucky）"
 cp feeds.conf.default feeds.conf
 cat >> feeds.conf <<'EOF'
 src-git smallpackage https://github.com/kenzok8/small-package.git^main
+src-git lucky https://github.com/gdy666/luci-app-lucky.git^main
 EOF
 
 log "更新 feeds"
@@ -90,7 +91,18 @@ log "从 small-package 安装所需插件及依赖"
 ./scripts/feeds install -p smallpackage \
     luci-app-store luci-lib-taskd luci-lib-xterm taskd \
     luci-app-diskman luci-theme-argon \
-    luci-app-oaf open-app-filter oaf >/dev/null
+    luci-app-oaf open-app-filter oaf \
+    luci-app-wrtbwmon >/dev/null
+
+# Lucky 用官方源 gdy666/luci-app-lucky（兼容 25.12 apk，核心程序按架构下载
+# 预编译包，不依赖老式 Lua 编译）。luci-i18n-lucky-zh-cn 由该 Makefile 内的
+# LuciTranslation 自动生成，装了界面包即会出现，无需单独 install。
+log "从 gdy666/luci-app-lucky 安装 lucky 核心包与界面包"
+./scripts/feeds install -p lucky lucky luci-app-lucky >/dev/null
+
+# watchcat / luci-app-watchcat / luci-i18n-watchcat-zh-cn 均来自官方 feed
+# （packages feed 提供 watchcat 核心；luci feed 提供界面+zh_Hans 语言包），
+# 上面 `feeds install -a -p <官方feed>` 已全量安装，无需额外处理。
 
 # ---------------------------------------------------------------- 补丁
 shopt -s nullglob
