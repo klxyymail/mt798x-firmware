@@ -32,7 +32,7 @@ cd "$SOURCE_DIR"
 log "写入 feeds.conf（官方源 + 高星插件源 kenzok8/small-package）"
 cp feeds.conf.default feeds.conf
 cat >> feeds.conf <<'EOF'
-src-git small-package https://github.com/kenzok8/small-package.git^main
+src-git smallpackage https://github.com/kenzok8/small-package.git^main
 EOF
 
 log "更新 feeds"
@@ -52,7 +52,7 @@ while IFS= read -r feed; do
 done < <(awk '$1 ~ /^src-/ && NF >= 2 {print $2}' feeds.conf.default)
 
 log "从 small-package 安装所需插件及依赖"
-./scripts/feeds install -p small-package \
+./scripts/feeds install -p smallpackage \
     luci-app-store luci-lib-taskd luci-lib-xterm taskd \
     luci-app-diskman luci-theme-argon \
     luci-app-oaf open-app-filter oaf >/dev/null
