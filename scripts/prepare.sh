@@ -59,10 +59,12 @@ fi
 # store 本体是 prebuilt 前端 UI，运行时用 busybox 的 mount，去掉这两个失效依赖。
 STORE_MK="feeds/smallpackage/luci-app-store/Makefile"
 if [[ -f "$STORE_MK" ]]; then
-    if grep -qE '\+mount-utils|\+libuci-lua' "$STORE_MK"; then
-        sed -i -e 's/ +mount-utils//' -e 's/ +libuci-lua//' "$STORE_MK"
-        log "已移除 luci-app-store 对不存在的 mount-utils / libuci-lua 包的依赖"
-    fi
+    sed -i \
+        -e 's/ +mount-utils//' \
+        -e 's/ +libuci-lua//' \
+        -e '/^LUCI_EXTRA_DEPENDS:/d' \
+        "$STORE_MK"
+    log "已清理 luci-app-store 的失效依赖（mount-utils/libuci-lua/EXTRA_DEPENDS）"
 fi
 
 # 官方 feed 全量安装；第三方大仓只安装需要的包，避免其 base-files/firewall 等

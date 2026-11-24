@@ -104,8 +104,12 @@ for sym in luci-app-store luci-app-diskman luci-app-oaf luci-theme-argon; do
     if ! grep -qxF "CONFIG_PACKAGE_${sym}=y" .config; then
         warn "诊断：${sym} 未进入 .config，相关行如下："
         grep -iE "${sym}|luci-lua-runtime|mount-utils" .config | sed 's/^/    /' || true
+        if [[ -f tmp/.config-package.in ]]; then
+            echo "    --- Kconfig 符号定义（.config-package.in）---"
+            grep -n -A12 "config PACKAGE_${sym}$" tmp/.config-package.in | head -16 | sed 's/^/    /' || true
+        fi
         dmp="logs/package/feeds/smallpackage/${sym}/dump.txt"
-        [[ -f "$dmp" ]] && { echo "    --- $dmp ---"; grep -iE 'depends|select|missing|error' "$dmp" | head -20 | sed 's/^/    /'; } || true
+        [[ -f "$dmp" ]] && { echo "    --- $dmp ---"; cat "$dmp" | head -30 | sed 's/^/    /'; } || true
     fi
 done
 
