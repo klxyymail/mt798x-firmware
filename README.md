@@ -21,9 +21,7 @@
 
 ---
 
-## 2. 必装插件
-
-清单定义在唯一配置文件 [`.config`](.config) 的 `PLUGINS` 数组中，构建和校验共用同一份文件：
+## 2. 插件
 
 | 插件 | 来源 feed |
 |---|---|
@@ -36,18 +34,14 @@
 | `luci-app-diskman` | `kenzok8/small-package.git^main` |
 | `luci-theme-argon` | `kenzok8/small-package.git^main` |
 | `luci-app-oaf` | `kenzok8/small-package.git^main` |
+| `luci-app-ssr-plus` | `kenzok8/small-package.git^main` |
+| `luci-app-passwall` | `kenzok8/small-package.git^main` |
 | `luci-i18n-oaf-zh-cn` | 由 `luci-app-oaf/po/zh_Hans` 经 `luci.mk` 自动生成（`zh_Hans` → `zh-cn`） |
 | `luci-app-lucky` | 官方 [`gdy666/luci-app-lucky.git^main`](https://github.com/gdy666/luci-app-lucky)（核心包 `lucky` 按架构下载预编译二进制） |
 | `luci-i18n-lucky-zh-cn` | 由官方 lucky 源 `po/zh_Hans` 经 `luci.mk` 自动生成 |
 | `luci-app-wrtbwmon` | `kenzok8/small-package.git^main`（依赖官方 `luci-app-nlbwmon`） |
 | `luci-app-watchcat` | OpenWrt 官方 luci feed（核心包 `watchcat` 来自官方 packages feed） |
 | `luci-i18n-watchcat-zh-cn` | 由官方 luci 源 `po/zh_Hans` 经 `luci.mk` 自动生成 |
-
-插件源以 [`kenzok8/small-package`](https://github.com/kenzok8/small-package)（1708 星、持续更新）为主，Lucky 单独使用其官方源 [`gdy666/luci-app-lucky`](https://github.com/gdy666/luci-app-lucky)（兼容 25.12 apk，避免第三方旧版的老式 Lua 依赖坑）；watchcat 使用 OpenWrt 官方 feed。`luci-app-oaf` 的底层依赖由 small-package 的 `open-app-filter`（提供 `appfilter`）与 `oaf`（提供 `kmod-oaf`）目录提供，脚本只按需安装这些包，不把该大仓的 `base-files`、`firewall` 等同名包装进来覆盖 OpenWrt 核心组件。
-
-> 说明：用户最初要求的 `luci-app-ssr-plus`、`luci-app-passwall` 属于翻墙代理工具，未纳入固件；其余 5 个常规插件（Lucky 官方版+中文包、wrtbwmon、watchcat+中文包）已加入。
-
----
 
 ## 3. 闭源驱动说明
 
