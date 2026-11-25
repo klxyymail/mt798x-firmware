@@ -117,6 +117,11 @@ log "从 small-package 安装所需插件及依赖"
 log "从 gdy666/luci-app-lucky 安装 lucky 核心包与界面包"
 ./scripts/feeds install -p lucky lucky luci-app-lucky >/dev/null
 
+# Harbor File Pro 是独立小仓，包目录就是仓库根下的 luci-app-harbor-file-pro/，
+# 依赖均为 25.12 自带组件（rpcd-mod-file / ucode 系列），无需额外打补丁。
+log "从 whzhni1/luci-app-harbor-file-pro 安装文件管理器"
+./scripts/feeds install -p harbor luci-app-harbor-file-pro >/dev/null
+
 # watchcat / luci-app-watchcat / luci-i18n-watchcat-zh-cn 均来自官方 feed
 # （packages feed 提供 watchcat 核心；luci feed 提供界面+zh_Hans 语言包），
 # 上面 `feeds install -a -p <官方feed>` 已全量安装，无需额外处理。
